@@ -52,7 +52,7 @@ async function getModel(): Promise<string> {
   return (
     setting?.value ||
     process.env.OPENROUTER_MODEL ||
-    "nvidia/nemotron-3-super-120b-a12b:free"
+    "inclusionai/ling-3.0-flash:free"
   );
 }
 
