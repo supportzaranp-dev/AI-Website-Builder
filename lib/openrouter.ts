@@ -25,8 +25,10 @@ CONTENT (very important - be accurate to the request):
 - Choose sections that match the request. For example a company profile: hero (company name + tagline), About Us, Services/Products, Why Choose Us, Team, Testimonials, Contact (with a form) and footer.
 - If the user gives a name, use that exact name consistently throughout the site.
 
-IMAGES (very important - relevant, not random):
-- Use REAL topic-relevant photos from loremflickr: https://loremflickr.com/WIDTH/HEIGHT/KEYWORD - pick keywords that match each section's content (e.g. https://loremflickr.com/800/500/construction , https://loremflickr.com/600/400/office,team , https://loremflickr.com/400/400/dog). NEVER use random or unrelated images.
+IMAGES (very important - always relevant, never random):
+- For EVERY image use the free AI image generator pollinations.ai. Format: https://image.pollinations.ai/prompt/DESCRIPTION?width=W&height=H&nologo=true
+- DESCRIPTION must be a detailed English phrase describing exactly what that image should show for its section, with spaces replaced by %20. Example hero image: https://image.pollinations.ai/prompt/ganoderma%20mushroom%20natural%20wellness%20healthy%20lifestyle?width=1200&height=600&nologo=true
+- Write a specific, relevant DESCRIPTION for each image that matches the topic and that section (products, team, about, etc.). NEVER use loremflickr, picsum, unsplash or any random image source.
 
 DESIGN QUALITY:
 - Modern, clean, professional: hero section, clear sections, footer, nice typography, a consistent color palette, generous spacing, rounded corners, subtle shadows, hover effects and smooth transitions.
