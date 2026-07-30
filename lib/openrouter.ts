@@ -12,39 +12,41 @@ export interface GeneratedSite {
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-const SYSTEM_PROMPT = `You are an expert senior web developer and UI/UX designer.
-Your job: from the user's request, build a COMPLETE, modern, beautiful, fully responsive website.
+const SYSTEM_PROMPT = `You are an expert web developer and UI/UX designer. Build ONE complete, modern, beautiful, fully responsive single-file website from the user's request.
 
-STRICT OUTPUT RULES:
-- Respond with ONLY a single valid JSON object. No markdown, no code fences, no commentary.
-- JSON shape: {"title": string, "html": string, "css": string, "js": string, "notes": string}
-- "html": ONLY the markup that goes INSIDE <body>. Do NOT include <!DOCTYPE>, <html>, <head>, or <body> tags. Do NOT include <style> or <script> tags here.
-- "css": complete CSS (no <style> tags). Use modern responsive design, nice fonts, spacing, colors, hover effects, and mobile media queries.
-- "js": vanilla JavaScript only (no <script> tags). Leave "" if not needed.
-- "notes": 1-2 short sentences describing what you built and any features.
+OUTPUT RULES (very important):
+- Output ONLY raw HTML. Start with <!DOCTYPE html> and end with </html>.
+- NO markdown, NO code fences, NO JSON, NO explanation before or after the HTML.
+- Put ALL CSS inside a single <style> tag in <head>. Put any JavaScript inside a <script> tag before </body>.
+- Use plain CSS only (do NOT use Tailwind or external CSS frameworks). You may load Google Fonts via a <link> tag.
+- Use https://picsum.photos for any placeholder images (e.g. https://picsum.photos/600/400).
 
 DESIGN QUALITY:
-- Make it look professional: hero section, clear sections, good typography, consistent color palette, rounded corners, subtle shadows, smooth transitions.
-- Fully responsive (mobile + desktop). Include a working nav.
-- Use only inline data / placeholder images from https://picsum.photos if images are needed.
-- Add the specific advanced features the user asks for (forms, sliders, galleries, dark mode, etc.).
-- Everything must work standalone in a single HTML file.`;
+- Professional look: a hero section, clear content sections, a footer, nice typography, a consistent color palette, good spacing, rounded corners, subtle shadows, hover effects and smooth transitions.
+- Fully responsive (mobile + desktop) using CSS media queries. Include a working navigation bar.
+- Add the specific advanced features the user asks for (forms, galleries, sliders, dark mode, etc.).
 
-function stripFences(text: string): string {
-  let t = text.trim();
-  // remove ```json ... ``` or ``` ... ```
-  t = t.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
+LENGTH: Be CONCISE. Build a focused single page (hero + 3-5 sections + footer). The page MUST be COMPLETE and end with </html>. Always prioritize finishing and closing every tag over adding more content.`;
+
+function extractHtml(text: string): string {
+  let t = (text || "").trim();
+  // remove ```html ... ``` fences if the model added them
+  t = t.replace(/^```(?:html)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  // slice from the document start
+  const start = t.search(/<!doctype html|<html[\s>]/i);
+  if (start > 0) t = t.slice(start);
+  // slice to the closing </html> if present
+  const end = t.toLowerCase().lastIndexOf("</html>");
+  if (end !== -1) t = t.slice(0, end + "</html>".length);
   return t.trim();
 }
 
-function extractJson(text: string): string {
-  const cleaned = stripFences(text);
-  const first = cleaned.indexOf("{");
-  const last = cleaned.lastIndexOf("}");
-  if (first !== -1 && last !== -1 && last > first) {
-    return cleaned.slice(first, last + 1);
-  }
-  return cleaned;
+function extractTitle(html: string): string {
+  const m = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+  if (m && m[1].trim()) return m[1].trim();
+  const h1 = html.match(/<h1[^>]*>([^<]*)<\/h1>/i);
+  if (h1 && h1[1].trim()) return h1[1].trim();
+  return "Website";
 }
 
 async function getModel(): Promise<string> {
@@ -52,7 +54,7 @@ async function getModel(): Promise<string> {
   return (
     setting?.value ||
     process.env.OPENROUTER_MODEL ||
-    "inclusionai/ling-3.0-flash:free"
+    "nvidia/nemotron-3-nano-30b-a3b:free"
   );
 }
 
@@ -65,15 +67,16 @@ export async function generateWebsite(
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "OPENROUTER_API_KEY set nahi hai. .env file me apni free OpenRouter key daalein."
+      "OPENROUTER_API_KEY set nahi hai. .env ya Vercel me apni free OpenRouter key daalein."
     );
   }
 
   const model = await getModel();
 
+  // Sirf pichle kuch turns bhejo taaki context chota rahe (speed ke liye).
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },
-    ...history.slice(-8).map((h) => ({ role: h.role, content: h.content })),
+    ...history.slice(-4).map((h) => ({ role: h.role, content: h.content })),
     { role: "user", content: userPrompt },
   ];
 
@@ -88,7 +91,7 @@ export async function generateWebsite(
     body: JSON.stringify({
       model,
       messages,
-      temperature: 0.7,
+      temperature: 0.6,
       max_tokens: 8000,
     }),
   });
@@ -96,44 +99,31 @@ export async function generateWebsite(
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     throw new Error(
-      `AI service error (${res.status}). ${
-        res.status === 401
-          ? "API key galat hai."
-          : res.status === 429
-          ? "Free limit khatam ho gayi, thodi der baad try karein."
-          : errText.slice(0, 200)
-      }`
+      res.status === 401
+        ? "API key galat hai."
+        : res.status === 429
+        ? "Free model ki limit khatam ho gayi. Thodi der baad try karein ya Admin se doosra model chunein."
+        : `AI service error (${res.status}). ${errText.slice(0, 150)}`
     );
   }
 
   const data = await res.json();
   const content: string = data?.choices?.[0]?.message?.content ?? "";
-  if (!content) throw new Error("AI se koi response nahi mila. Dobara try karein.");
+  if (!content.trim())
+    throw new Error("AI se koi response nahi mila. Dobara try karein.");
 
-  let parsed: Partial<GeneratedSite> | null = null;
-  try {
-    parsed = JSON.parse(extractJson(content));
-  } catch {
-    parsed = null;
+  const html = extractHtml(content);
+  if (!/<[a-z]/i.test(html)) {
+    throw new Error(
+      "AI ne sahi website nahi banayi. Dobara try karein ya Admin se doosra model chunein."
+    );
   }
 
-  if (parsed && (parsed.html || parsed.css)) {
-    return {
-      title: parsed.title || "Website",
-      html: parsed.html || "",
-      css: parsed.css || "",
-      js: parsed.js || "",
-      notes: parsed.notes || "",
-    };
-  }
-
-  // Fallback: agar model ne raw HTML diya to usi ko use karo
   return {
-    title: "Website",
-    html: content,
+    title: extractTitle(html),
+    html,
     css: "",
     js: "",
-    notes: "AI ne raw output diya (JSON nahi). Fallback me dikhaya gaya hai.",
+    notes: "Website ban gayi! Preview me dekhein. ✅",
   };
 }
-

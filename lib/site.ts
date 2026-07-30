@@ -5,8 +5,16 @@ export interface SiteParts {
   js: string;
 }
 
-/** html + css + js ko ek complete standalone HTML document me combine karo */
+/**
+ * Website ko ek complete standalone HTML document me badlo.
+ * Agar html pehle se hi poora document hai (<!DOCTYPE / <html), use waisa hi rakho.
+ * Warna html+css+js ko wrap karke document banao (purani versions ke liye).
+ */
 export function buildDocument(site: SiteParts): string {
+  const html = site.html || "";
+  const isFullDoc = /<!doctype html/i.test(html) || /<html[\s>]/i.test(html);
+  if (isFullDoc) return html;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +26,7 @@ ${site.css || ""}
 </style>
 </head>
 <body>
-${site.html || ""}
+${html}
 <script>
 ${site.js || ""}
 </script>
