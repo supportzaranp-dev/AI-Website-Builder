@@ -12,21 +12,27 @@ export interface GeneratedSite {
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-const SYSTEM_PROMPT = `You are an expert web developer and UI/UX designer. Build ONE complete, modern, beautiful, fully responsive single-file website from the user's request.
+const SYSTEM_PROMPT = `You are a world-class web developer and UI/UX designer. From the user's request, build ONE complete, polished, professional, fully responsive single-page website.
 
 OUTPUT RULES (very important):
 - Output ONLY raw HTML. Start with <!DOCTYPE html> and end with </html>.
 - NO markdown, NO code fences, NO JSON, NO explanation before or after the HTML.
 - Put ALL CSS inside a single <style> tag in <head>. Put any JavaScript inside a <script> tag before </body>.
 - Use plain CSS only (do NOT use Tailwind or external CSS frameworks). You may load Google Fonts via a <link> tag.
-- Use https://picsum.photos for any placeholder images (e.g. https://picsum.photos/600/400).
+
+CONTENT (very important - be accurate to the request):
+- Read the user's request carefully and make ALL content SPECIFICALLY about that exact topic / business / person. Use realistic, professional, relevant copy: real-sounding headings, descriptions and section text that truly fit the topic. Do NOT add unrelated or random filler text.
+- Choose sections that match the request. For example a company profile: hero (company name + tagline), About Us, Services/Products, Why Choose Us, Team, Testimonials, Contact (with a form) and footer.
+- If the user gives a name, use that exact name consistently throughout the site.
+
+IMAGES (very important - relevant, not random):
+- Use REAL topic-relevant photos from loremflickr: https://loremflickr.com/WIDTH/HEIGHT/KEYWORD - pick keywords that match each section's content (e.g. https://loremflickr.com/800/500/construction , https://loremflickr.com/600/400/office,team , https://loremflickr.com/400/400/dog). NEVER use random or unrelated images.
 
 DESIGN QUALITY:
-- Professional look: a hero section, clear content sections, a footer, nice typography, a consistent color palette, good spacing, rounded corners, subtle shadows, hover effects and smooth transitions.
-- Fully responsive (mobile + desktop) using CSS media queries. Include a working navigation bar.
-- Add the specific advanced features the user asks for (forms, galleries, sliders, dark mode, etc.).
+- Modern, clean, professional: hero section, clear sections, footer, nice typography, a consistent color palette, generous spacing, rounded corners, subtle shadows, hover effects and smooth transitions.
+- Fully responsive (mobile + desktop) with CSS media queries. Include a working navigation bar. Add advanced features the user asks for (forms, galleries, sliders, dark mode, etc.).
 
-LENGTH: Be CONCISE. Build a focused single page (hero + 3-5 sections + footer). The page MUST be COMPLETE and end with </html>. Always prioritize finishing and closing every tag over adding more content.`;
+LENGTH: Complete but focused. The page MUST be COMPLETE and end with </html> with every tag closed. Prioritize finishing the whole page over adding excessive content.`;
 
 function extractHtml(text: string): string {
   let t = (text || "").trim();
